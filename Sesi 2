@@ -1,0 +1,45 @@
+import multiprocessing as mp
+import numpy as np
+import time
+
+# Fungsi Simulasi Perhitungan Matriks Kompleks untuk Satu Sektor Wilayah
+def simulasi_dispersi_sektor(sektor_info):
+    sektor_id, ukuran_grid = sektor_info
+    np.random.seed(sektor_id)
+    
+    # Membuat grid matriks polutan
+    grid_polusi = np.random.exponential(scale=35.0, size=(ukuran_grid, ukuran_grid))
+    
+    # Perhitungan intensif matematika (Matriks Inversi & Eigenvalue) untuk simulasi aliran angin
+    matriks_bobot = np.random.rand(ukuran_grid, ukuran_grid)
+    inversi = np.linalg.pinv(grid_polusi + matriks_bobot)
+    eigenval = np.linalg.eigvals(inversi)
+    
+    konsentrasi_rata = np.abs(eigenval).mean() * 100
+    
+    return {
+        'Sektor_ID': sektor_id,
+        'Konsentrasi_PM25': konsentrasi_rata,
+        'Status': 'Bahaya' if konsentrasi_rata > 55 else 'Aman'
+    }
+
+if __name__ == '__main__':
+    t_start = time.time()
+    
+    # Menyiapkan 8 Sektor Wilayah dengan Grid 800x800
+    sektor_list = [(i, 800) for i in range(1, 9)]
+    
+    # Menjalankan eksekusi paralel pada semua Core CPU yang tersedia
+    jumlah_core = mp.cpu_count()
+    print(f"=== MENJALANKAN SIMULASI HPC DENGAN {jumlah_core} CORE CPU ===")
+    
+    with mp.Pool(processes=jumlah_core) as pool:
+        hasil_simulasi = pool.map(simulasi_dispersi_sektor, sektor_list)
+        
+    t_end = time.time()
+    
+    print("\n=== HASIL SIMULASI DISPERSI POLUTAN SEKTOR PERKOTAAN ===")
+    for res in hasil_simulasi:
+        print(f"Sektor {res['Sektor_ID']:02d} | Rata-rata PM2.5: {res['Konsentrasi_PM25']:.2f} µg/m³ | Kategori: {res['Status']}")
+        
+    print(f"\nTotal Waktu Eksekusi Paralel: {t_end - t_start:.4f} Detik")
